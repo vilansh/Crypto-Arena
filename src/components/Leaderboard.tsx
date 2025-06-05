@@ -5,9 +5,9 @@ import { Card } from '@/components/ui/card';
 
 const Leaderboard = () => {
   const topTraders = [
-    { rank: 1, name: 'CryptoKing', profit: 125648, winRate: 89.5, avatar: 'CK', color: 'from-yellow-400 to-orange-500', trophyColor: 'text-yellow-400' },
-    { rank: 2, name: 'MoonLander', profit: 98432, winRate: 85.2, avatar: 'ML', color: 'from-gray-300 to-gray-500', trophyColor: 'text-gray-300' },
-    { rank: 3, name: 'DiamondHands', profit: 87234, winRate: 82.7, avatar: 'DH', color: 'from-amber-600 to-orange-700', trophyColor: 'text-amber-600' },
+    { rank: 1, name: '0xVilansh', profit: 125648, winRate: 89.5, avatar: 'CK', color: 'from-yellow-400 to-orange-500', trophyColor: 'text-yellow-400' },
+    { rank: 2, name: 'Vilansh', profit: 98432, winRate: 85.2, avatar: 'ML', color: 'from-gray-300 to-gray-500', trophyColor: 'text-gray-300' },
+    { rank: 3, name: 'Eth.Vilansh', profit: 87234, winRate: 82.7, avatar: 'DH', color: 'from-amber-600 to-orange-700', trophyColor: 'text-amber-600' },
     { rank: 4, name: 'CryptoTrader', profit: 76543, winRate: 78.5, avatar: 'CX', color: 'from-blue-400 to-purple-500', trophyColor: 'text-blue-400', isCurrentUser: true },
     { rank: 5, name: 'HODLMaster', profit: 65421, winRate: 75.3, avatar: 'HM', color: 'from-green-400 to-teal-500', trophyColor: 'text-green-400' }
   ];
