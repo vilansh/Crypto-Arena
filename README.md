@@ -1,73 +1,135 @@
-# Welcome to your Lovable project
+Product Name: Crypto Clash – Gamified Cryptocurrency Trading Platform
+Prepared by: Vilansh
+1. 🚀 Overview
 
-## Project info
+Crypto Clash is a gamified cryptocurrency trading simulation platform that uses real-time market data (or simulated data) to let users practice trading with fake money. It introduces XP points, levels, achievements, and social features to make trading educational and addictive. Designed for mobile-first users, it blends fintech, gamification, and real-time data visualization into an immersive experience.
+2. 🎯 Goals & Objectives
 
-**URL**: https://lovable.dev/projects/1678a1b7-f897-4c9c-bf24-955df23fbc17
+    Teach users the basics of cryptocurrency and trading through an engaging experience.
 
-## How can I edit this code?
+    Allow users to practice trading risk-free with fake currency.
 
-There are several ways of editing your application.
+    Drive user retention through social competition and gamified progression.
 
-**Use Lovable**
+    Provide a modern UX showcasing real-time performance, interactivity, and design polish.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/1678a1b7-f897-4c9c-bf24-955df23fbc17) and start prompting.
+3. 👥 Target Users
 
-Changes made via Lovable will be committed automatically to this repo.
+    Young adults and students interested in crypto (age 16–30)
 
-**Use your preferred IDE**
+    Aspiring traders who want to practice before investing real money
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+    Casual gamers interested in finance
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+    Users in India curious about crypto but afraid of risks
 
-Follow these steps:
+4. 💡 Key Features
+🔄 Core Trading Game Mechanics
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+    Paper Trading: Users start with ₹1,00,000 fake currency
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+    Real-Time Price Sync (Socket.IO or simulated)
 
-# Step 3: Install the necessary dependencies.
-npm i
+    Buy/Sell Interface with animated confirmations
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+    Portfolio Management with profit/loss tracking
 
-**Edit a file directly in GitHub**
+🕹️ Gamification
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+    XP & Level System: Gain XP through trades, quizzes, and daily logins
 
-**Use GitHub Codespaces**
+    Achievements: Badge system with animated unlocks (Framer Motion)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+    Leaderboards: Daily, weekly, and all-time ranks
 
-## What technologies are used for this project?
+📊 Visualization & UX
 
-This project is built with:
+    3D Portfolio View using Three.js
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+    Chart.js: Candlestick charts, performance graphs
 
-## How can I deploy this project?
+    Animated Profit/Loss Effects: Glow/flash/red-green animations
 
-Simply open [Lovable](https://lovable.dev/projects/1678a1b7-f897-4c9c-bf24-955df23fbc17) and click on Share -> Publish.
+🧠 Education
 
-## Can I connect a custom domain to my Lovable project?
+    Mini-games: Flashcards, drag-and-drop quizzes about blockchain, trading, NFTs
 
-Yes, you can!
+    Tooltips: Every element comes with an educational tooltip
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+🤝 Social Features
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+    Challenge Friends: See who earns the most in 24h
+
+    Share Portfolio: Export and share visual snapshots on Twitter/Instagram
+
+    News Integration: Real-world news causes simulated price swings (optional)
+
+5. 🛠️ Tech Stack
+Layer	Tools
+Frontend	React/Next.js, TypeScript, Tailwind CSS
+Real-time	Socket.IO, WebSocket API
+Animations	Framer Motion, GSAP
+3D & Charts	Three.js, Chart.js, D3.js
+Backend (Optional)	Node.js + Express (for leaderboard, auth, etc.)
+Storage	Firebase/LocalStorage for POC, PostgreSQL or MongoDB for full
+Deployment	Vercel (frontend), Railway/Render (backend)
+PWA	Full mobile-friendly experience with offline support
+6. 📱 UX Design Guidelines
+
+    Mobile-first: Smooth, fast, and thumb-friendly interface
+
+    Premium Feel: Use glassmorphism, animated transitions
+
+    Micro-interactions: Every click should feel intentional
+
+    Dark Mode: Standard + crypto-like look
+
+    Gamified UX: XP bars, progress meters, confetti for achievements
+
+7. 🧪 MVP Feature Scope
+Feature	Status
+User login/signup (fake or Firebase auth)	✅
+Fake wallet balance + crypto asset list	✅
+Real-time (or mocked) crypto price updates	✅
+Buy/sell simulation	✅
+Portfolio screen with charts	✅
+XP/Level system	✅
+Basic leaderboard	✅
+Educational flashcards	✅
+Achievement badges	✅
+Shareable portfolio image	✅
+Responsive PWA	✅
+8. 📊 Metrics for Success
+
+    DAU/MAU (for growth)
+
+    Avg. session time
+
+    Avg. trades/user/day
+
+    Level completion rate
+
+    % users sharing portfolios
+
+9. 📅 Development Timeline (for solo dev)
+Week	Goals
+1	Setup project, UI mockups, build wallet + fake trading engine
+2	Add real-time prices, XP system, and charting
+3	Build achievements, leaderboards, and social share
+4	Polish UI, add education mini-games, finalize PWA
+10. 📘 Future Enhancements (Post-MVP)
+
+    AI coach: Recommends trades based on simulated news
+
+    Real-time multiplayer duels (trade-off challenges)
+
+    NFT-based badge system (Web3 feature)
+
+    Full backend with user management and advanced analytics
+
+11. 🛡️ Risks & Mitigation
+Risk	Mitigation
+Complexity of real-time updates	Start with simulated real-time data
+Crypto price API limitations	Use public APIs with fallback mock data
+Educational value vs. entertainment	Balance XP rewards across both
+Performance on low-end phones	Optimize animations and rendering paths
