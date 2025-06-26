@@ -1,21 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Eye, Flame, Zap } from 'lucide-react';
+import { TrendingUp, TrendingDown, Eye, Flame } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { useWallet } from '../hooks/useWallet';
+import { fetchUserTrades } from '../utils/api';
+import { fetchLivePrices } from '../utils/fetchPrices';
 
 const Portfolio = () => {
   const [portfolioMood, setPortfolioMood] = useState('PUMPING');
-  
-  const holdings = [
-    { symbol: 'BTC', amount: 1.337, value: 92854.20, change: +42.69, color: 'from-chaos-orange to-chaos-yellow', glowColor: 'shadow-chaos-orange' },
-    { symbol: 'ETH', amount: 13.37, value: 56133.69, change: -13.37, color: 'from-chaos-cyan to-chaos-green', glowColor: 'shadow-brutal' },
-    { symbol: 'DOGE', amount: 69420, value: 29157.24, change: +88.88, color: 'from-chaos-yellow to-chaos-orange', glowColor: 'shadow-chaos-yellow' },
-    { symbol: 'SHIB', amount: 1337000, value: 17867.89, change: +666.66, color: 'from-chaos-pink to-chaos-purple', glowColor: 'shadow-chaos-pink' }
-  ];
-
-  const totalValue = holdings.reduce((sum, holding) => sum + holding.value, 0);
-  const totalChange = holdings.reduce((sum, holding) => sum + (holding.value * holding.change / 100), 0);
-  const totalChangePercent = (totalChange / totalValue) * 100;
+  const { address } = useWallet();
+  const [trades, setTrades] = useState<any[]>([]);
+  const [prices, setPrices] = useState<any>({});
+  const [holdings, setHoldings] = useState<any[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,6 +19,48 @@ const Portfolio = () => {
     }, 3000);
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (address) {
+      fetchUserTrades(address).then(setTrades);
+    }
+    fetchLivePrices().then(setPrices);
+    const interval = setInterval(() => {
+      fetchLivePrices().then(setPrices);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [address]);
+
+  useEffect(() => {
+    // Calculate holdings from trades
+    const tokens = ['BTC', 'ETH', 'DOGE', 'SHIB'];
+    const holdingsMap: Record<string, number> = {};
+    tokens.forEach(t => holdingsMap[t] = 0);
+    trades.forEach(trade => {
+      if (trade.side === 'buy') {
+        holdingsMap[trade.token] += Number(trade.amount);
+      } else if (trade.side === 'sell') {
+        holdingsMap[trade.token] -= Number(trade.amount);
+      }
+    });
+    const newHoldings = tokens.map(symbol => {
+      let price = 0;
+      if (symbol === 'SHIB') price = prices['shiba-inu']?.usd ?? 0;
+      else if (symbol === 'BTC') price = prices.bitcoin?.usd ?? 0;
+      else if (symbol === 'ETH') price = prices.ethereum?.usd ?? 0;
+      else if (symbol === 'DOGE') price = prices.dogecoin?.usd ?? 0;
+      return {
+        symbol,
+        amount: holdingsMap[symbol],
+        value: holdingsMap[symbol] * price,
+        color: symbol === 'BTC' ? 'from-chaos-orange to-chaos-yellow' : symbol === 'ETH' ? 'from-chaos-cyan to-chaos-green' : symbol === 'DOGE' ? 'from-chaos-yellow to-chaos-orange' : 'from-chaos-pink to-chaos-purple',
+        glowColor: symbol === 'BTC' ? 'shadow-chaos-orange' : symbol === 'ETH' ? 'shadow-brutal' : symbol === 'DOGE' ? 'shadow-chaos-yellow' : 'shadow-chaos-pink',
+      };
+    });
+    setHoldings(newHoldings);
+  }, [trades, prices]);
+
+  const totalValue = holdings.reduce((sum, holding) => sum + holding.value, 0);
 
   return (
     <Card className="chaos-card relative overflow-hidden">
@@ -47,21 +84,12 @@ const Portfolio = () => {
         <p className="text-5xl font-display font-black text-chaos-green neon-glow mb-3">
           ${totalValue.toLocaleString()}
         </p>
-        <div className={`flex items-center justify-center text-xl font-display font-black ${
-          totalChangePercent > 0 ? 'text-chaos-green' : 'text-chaos-pink'
-        } neon-glow`}>
-          {totalChangePercent > 0 ? 
-            <Flame className="w-6 h-6 mr-2 animate-neon-pulse" /> : 
-            <TrendingDown className="w-6 h-6 mr-2 animate-loss-shake" />
-          }
-          {totalChangePercent > 0 ? '+' : ''}${totalChange.toLocaleString()} ({totalChangePercent.toFixed(2)}%)
-        </div>
       </div>
 
       {/* Chaos Holdings */}
       <div className="space-y-4">
         {holdings.map((holding, index) => {
-          const percentage = (holding.value / totalValue) * 100;
+          const percentage = totalValue > 0 ? (holding.value / totalValue) * 100 : 0;
           return (
             <div
               key={holding.symbol}
@@ -87,15 +115,6 @@ const Portfolio = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-xl font-display font-black text-white">${holding.value.toLocaleString()}</p>
-                    <p className={`text-sm flex items-center justify-end font-display font-bold ${
-                      holding.change > 0 ? 'text-green-200' : 'text-red-200'
-                    }`}>
-                      {holding.change > 0 ? 
-                        <Flame className="w-4 h-4 mr-1 animate-neon-pulse" /> : 
-                        <TrendingDown className="w-4 h-4 mr-1 animate-loss-shake" />
-                      }
-                      {holding.change > 0 ? '+' : ''}{holding.change}%
-                    </p>
                   </div>
                 </div>
                 
@@ -112,18 +131,6 @@ const Portfolio = () => {
             </div>
           );
         })}
-      </div>
-
-      {/* Chaos Stats */}
-      <div className="mt-6 grid grid-cols-2 gap-4">
-        <div className="p-4 rounded-lg bg-greed-darker border border-chaos-green text-center cyber-tilt">
-          <p className="text-xs font-display font-bold text-chaos-yellow">TOP GAINER</p>
-          <p className="text-lg font-display font-black text-chaos-green neon-glow">SHIB +666%</p>
-        </div>
-        <div className="p-4 rounded-lg bg-greed-darker border border-chaos-pink text-center cyber-tilt">
-          <p className="text-xs font-display font-bold text-chaos-yellow">CHAOS LEVEL</p>
-          <p className="text-lg font-display font-black text-chaos-pink neon-glow">MAXIMUM</p>
-        </div>
       </div>
     </Card>
   );

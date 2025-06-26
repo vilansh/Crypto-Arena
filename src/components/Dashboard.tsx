@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Trophy, Zap, TrendingUp, TrendingDown, Star, Award, Target, Flame } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -9,8 +8,12 @@ import Portfolio from './Portfolio';
 import Leaderboard from './Leaderboard';
 import AchievementModal from './AchievementModal';
 import QuizModal from './QuizModal';
+import { fetchLivePrices } from '../utils/fetchPrices';
+import { fetchUserTrades, fetchLeaderboard } from "../utils/api";
+import { useWallet } from "../hooks/useWallet";
 
 const Dashboard = () => {
+  const { address } = useWallet();
   const [showAchievement, setShowAchievement] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [glitchText, setGlitchText] = useState(false);
@@ -27,6 +30,18 @@ const Dashboard = () => {
 
   const xpPercentage = (userStats.xp / userStats.xpToNext) * 100;
 
+  const [prices, setPrices] = useState({});
+  const [trades, setTrades] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const data = await fetchLivePrices();
+      setPrices(data);
+    }, 10000); // update every 10s
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const glitchInterval = setInterval(() => {
       setGlitchText(true);
@@ -34,6 +49,27 @@ const Dashboard = () => {
     }, 3000);
     return () => clearInterval(glitchInterval);
   }, []);
+
+  useEffect(() => {
+    if (!address) return;
+    // Fetch trades
+    fetchUserTrades(address).then(setTrades);
+    // Fetch leaderboard
+    fetchLeaderboard().then(setLeaderboard);
+  }, [address]);
+
+  const handleTrade = async (wallet, token, side, amount, price) => {
+    try {
+      await fetch('/api/trades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet, token, side, amount, price, timestamp: new Date().toISOString() })
+      });
+      // Handle success
+    } catch (error) {
+      // Handle error
+    }
+  };
 
   return (
     <div className="min-h-screen bg-chaos-black p-4 space-y-6 relative overflow-hidden">

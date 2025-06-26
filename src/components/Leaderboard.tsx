@@ -1,22 +1,14 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Trophy, Medal, Award, TrendingUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { fetchLeaderboard } from '../utils/api';
 
 const Leaderboard = () => {
-  const topTraders = [
-<<<<<<< HEAD
-    { rank: 1, name: 'Vilansh', profit: 125648, winRate: 89.5, avatar: 'CK', color: 'from-yellow-400 to-orange-500', trophyColor: 'text-yellow-400' },
-    { rank: 2, name: '0xcrypto', profit: 98432, winRate: 85.2, avatar: 'ML', color: 'from-gray-300 to-gray-500', trophyColor: 'text-gray-300' },
-    { rank: 3, name: 'Eth.vilansh', profit: 87234, winRate: 82.7, avatar: 'DH', color: 'from-amber-600 to-orange-700', trophyColor: 'text-amber-600' },
-=======
-    { rank: 1, name: '0xVilansh', profit: 125648, winRate: 89.5, avatar: 'CK', color: 'from-yellow-400 to-orange-500', trophyColor: 'text-yellow-400' },
-    { rank: 2, name: 'Vilansh', profit: 98432, winRate: 85.2, avatar: 'ML', color: 'from-gray-300 to-gray-500', trophyColor: 'text-gray-300' },
-    { rank: 3, name: 'Eth.Vilansh', profit: 87234, winRate: 82.7, avatar: 'DH', color: 'from-amber-600 to-orange-700', trophyColor: 'text-amber-600' },
->>>>>>> 3a89ec06abb9ad49e149bf8fbf7fa8dc4df2631b
-    { rank: 4, name: 'CryptoTrader', profit: 76543, winRate: 78.5, avatar: 'CX', color: 'from-blue-400 to-purple-500', trophyColor: 'text-blue-400', isCurrentUser: true },
-    { rank: 5, name: 'HODLMaster', profit: 65421, winRate: 75.3, avatar: 'HM', color: 'from-green-400 to-teal-500', trophyColor: 'text-green-400' }
-  ];
+  const [topTraders, setTopTraders] = useState<any[]>([]);
+
+  useEffect(() => {
+    fetchLeaderboard().then(setTopTraders);
+  }, []);
 
   const getTrophyIcon = (rank: number) => {
     switch (rank) {
@@ -37,7 +29,7 @@ const Leaderboard = () => {
       <div className="space-y-3">
         {topTraders.map((trader, index) => (
           <div
-            key={trader.rank}
+            key={trader.rank || trader.wallet || index}
             className={`relative overflow-hidden p-4 rounded-xl border transition-all duration-300 hover:scale-105 ${
               trader.isCurrentUser 
                 ? 'border-neon-blue bg-neon-blue/10 shadow-neon-blue animate-pulse-neon' 
@@ -50,17 +42,17 @@ const Leaderboard = () => {
             {/* Rank and Trophy */}
             <div className="flex items-center space-x-4">
               <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center">
-                {getTrophyIcon(trader.rank)}
+                {getTrophyIcon(index + 1)}
               </div>
 
               {/* Avatar */}
               <div className="relative">
-                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${trader.color} p-1`}>
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${trader.color || 'from-yellow-400 to-orange-500'} p-1`}>
                   <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">{trader.avatar}</span>
+                    <span className="text-sm font-bold text-white">{trader.avatar || (trader.wallet ? trader.wallet.slice(2, 4).toUpperCase() : '??')}</span>
                   </div>
                 </div>
-                {trader.rank <= 3 && (
+                {index < 3 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
                     <span className="text-xs">⭐</span>
                   </div>
@@ -70,29 +62,24 @@ const Leaderboard = () => {
               {/* Trader Info */}
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <h4 className={`font-semibold ${trader.isCurrentUser ? 'text-neon-blue' : 'text-white'}`}>
-                    {trader.name}
-                    {trader.isCurrentUser && <span className="ml-2 text-xs text-neon-blue">(You)</span>}
-                  </h4>
+                  <h4 className={`font-semibold ${trader.isCurrentUser ? 'text-neon-blue' : 'text-white'}`}>{trader.name || trader.wallet || 'Trader'}</h4>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-neon-green">+${trader.profit.toLocaleString()}</p>
-                    <p className="text-xs text-slate-400">{trader.winRate}% Win Rate</p>
+                    <p className="text-lg font-bold text-neon-green">${trader.profit?.toLocaleString() || trader.value?.toLocaleString() || '--'}</p>
+                    <p className="text-xs text-slate-400">{trader.winRate ? `${trader.winRate}% Win Rate` : ''}</p>
                   </div>
                 </div>
-
                 {/* Progress Bar for Win Rate */}
                 <div className="mt-2 w-full bg-slate-700 rounded-full h-1.5">
                   <div 
-                    className={`h-1.5 rounded-full bg-gradient-to-r ${trader.color} transition-all duration-1000 ease-out`}
+                    className={`h-1.5 rounded-full bg-gradient-to-r ${trader.color || 'from-yellow-400 to-orange-500'} transition-all duration-1000 ease-out`}
                     style={{ 
-                      width: `${trader.winRate}%`,
+                      width: `${trader.winRate || 100}%`,
                       animationDelay: `${index * 200}ms`
                     }}
                   />
                 </div>
               </div>
             </div>
-
             {/* Hover Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 -translate-x-full hover:translate-x-full transform transition-transform duration-700" />
           </div>

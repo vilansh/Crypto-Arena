@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Zap, Flame, Target } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useWallet } from '../hooks/useWallet';
@@ -8,31 +7,32 @@ import { fetchBalances } from '../utils/fetchBalances';
 import { CONTRACTS } from '../constants';
 import { getERC20Contract, getExchangeContract } from '../lib/contract';
 import { BrowserProvider } from "ethers";
+import { fetchLivePrices } from '../utils/fetchPrices';
+import { recordTrade } from '../utils/api';
 
 const TradingInterface = () => {
   const { address, connectWallet } = useWallet();
-  const [fromToken, setFromToken] = useState('BTC');
-  const [toToken, setToToken] = useState('ETH');
+  const [selectedToken, setSelectedToken] = useState('BTC');
+  const [action, setAction] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [balances, setBalances] = useState<{ [symbol: string]: string }>({});
   const [loading, setLoading] = useState(false);
-  const [priceGlitch, setPriceGlitch] = useState(false);
-  const [tradingMood, setTradingMood] = useState('CHAOS');
+  const [prices, setPrices] = useState<any>({});
 
   const cryptos = [
-    { symbol: 'BTC', name: 'BITCOIN', price: 69420.69, change: +13.37, color: 'text-orange-400', glow: 'shadow-chaos-orange' },
-    { symbol: 'ETH', name: 'ETHEREUM', price: 4200.42, change: -6.66, color: 'text-cyan-400', glow: 'shadow-brutal' },
-    { symbol: 'DOGE', name: 'DOGECOIN', price: 0.420, change: +42.0, color: 'text-yellow-400', glow: 'shadow-chaos-yellow' },
-    { symbol: 'SHIB', name: 'SHIBA', price: 0.00001337, change: +88.8, color: 'text-pink-400', glow: 'shadow-chaos-pink' }
+    { symbol: 'BTC', name: 'BITCOIN', price: prices.bitcoin?.usd ?? 0, color: 'text-orange-400' },
+    { symbol: 'ETH', name: 'ETHEREUM', price: prices.ethereum?.usd ?? 0, color: 'text-cyan-400' },
+    { symbol: 'DOGE', name: 'DOGECOIN', price: prices.dogecoin?.usd ?? 0, color: 'text-yellow-400' },
+    { symbol: 'SHIB', name: 'SHIBA', price: prices['shiba-inu']?.usd ?? 0, color: 'text-pink-400' }
   ];
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setPriceGlitch(true);
-      setTimeout(() => setPriceGlitch(false), 200);
-      const moods = ['CHAOS', 'GREED', 'MOON', 'REKT', 'HODL'];
-      setTradingMood(moods[Math.floor(Math.random() * moods.length)]);
-    }, 2000);
+    const fetchPricesInterval = async () => {
+      const data = await fetchLivePrices();
+      setPrices(data);
+    };
+    fetchPricesInterval();
+    const interval = setInterval(fetchPricesInterval, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -52,7 +52,7 @@ const TradingInterface = () => {
     }
   };
 
-  const handleSwap = async () => {
+  const handleTrade = async () => {
     if (!address) {
       connectWallet();
       return;
@@ -61,100 +61,105 @@ const TradingInterface = () => {
       alert('Enter a valid amount.');
       return;
     }
-    if (fromToken === toToken) {
-      alert('Select different tokens to swap.');
-      return;
-    }
     setLoading(true);
     try {
       const provider = new BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const tokenContract = getERC20Contract(CONTRACTS.tokens[fromToken], signer);
+      const tokenContract = getERC20Contract(CONTRACTS.tokens[selectedToken], signer);
       const exchangeContract = getExchangeContract(signer);
-      provider.getNetwork().then(network => {
-        console.log("Current network:", network);
-      });
-      console.log("Token address:", CONTRACTS.tokens[fromToken]);
-      const allowance = await tokenContract.allowance(address, CONTRACTS.exchange);
-      if (allowance < ethers.parseUnits(amount, 18)) {
-        const approveTx = await tokenContract.approve(CONTRACTS.exchange, ethers.parseUnits(amount, 18));
-        await approveTx.wait();
+      const tokenDecimals = 18;
+      const parsedAmount = ethers.parseUnits(amount, tokenDecimals);
+      const price = selectedToken === 'SHIB' ? prices['shiba-inu']?.usd ?? 0 : prices[selectedToken.toLowerCase()]?.usd ?? 0;
+      const ETH_ADDRESS = CONTRACTS.tokens['ETH'];
+      const TOKEN_ADDRESS = CONTRACTS.tokens[selectedToken];
+      if (action === 'buy') {
+        // User spends Sepolia ETH to buy selected token
+        // Call smart contract swap(ETH_ADDRESS, TOKEN_ADDRESS, amount)
+        const swapTx = await exchangeContract.swap(ETH_ADDRESS, TOKEN_ADDRESS, parsedAmount);
+        await swapTx.wait();
+        alert(`✅ Bought ${amount} ${selectedToken}!`);
+        await recordTrade({
+          wallet: address,
+          token: selectedToken,
+          side: 'buy',
+          amount: Number(amount),
+          price,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        // User sells selected token for Sepolia ETH
+        // Approve token if needed
+        const allowance = await tokenContract.allowance(address, CONTRACTS.exchange);
+        if (allowance < parsedAmount) {
+          const approveTx = await tokenContract.approve(CONTRACTS.exchange, parsedAmount);
+          await approveTx.wait();
+        }
+        // Call smart contract swap(TOKEN_ADDRESS, ETH_ADDRESS, amount)
+        const swapTx = await exchangeContract.swap(TOKEN_ADDRESS, ETH_ADDRESS, parsedAmount);
+        await swapTx.wait();
+        alert(`✅ Sold ${amount} ${selectedToken} for ETH!`);
+        await recordTrade({
+          wallet: address,
+          token: selectedToken,
+          side: 'sell',
+          amount: Number(amount),
+          price,
+          timestamp: new Date().toISOString()
+        });
       }
-      console.log("Calling swap with:", fromToken, toToken, ethers.parseUnits(amount, 18).toString());
-      const swapTx = await exchangeContract.swap("BTC", "ETH", ethers.parseUnits(amount, 18));
-      await swapTx.wait();
-      alert(`✅ Swapped ${amount} ${fromToken} to ${toToken}!`);
       await refreshBalances();
     } catch (err) {
-      console.error("Swap error:", err);
-      alert('❌ Swap failed.');
+      console.error("Trade error:", err);
+      alert('❌ Trade failed.');
     }
     setLoading(false);
   };
 
-  const selectedFrom = cryptos.find(c => c.symbol === fromToken);
-  const selectedTo = cryptos.find(c => c.symbol === toToken);
+  const selectedCrypto = cryptos.find(c => c.symbol === selectedToken);
 
   return (
     <Card className="chaos-card relative overflow-hidden">
-      {/* Trading mood indicator with whale background */}
-      <div className="absolute top-0 right-0 p-2">
-        <span className="text-xs font-display font-black text-yellow-400 glitch-text neon-glow animate-neon-pulse">
-          {tradingMood}
-        </span>
-      </div>
-      
-      {/* Whale illustration in background */}
-      <div 
-        className="absolute top-4 right-4 w-16 h-12 opacity-10 bg-contain bg-no-repeat"
-        style={{
-          backgroundImage: "url('https://images.unsplash.com/photo-1518877593221-1f28583780b4?w=100&h=80&fit=crop')"
-        }}
-      />
-      
-      <h3 className="text-2xl font-display font-black text-green-400 glitch-text mb-6 neon-glow" data-text="TRADE OR DIE">
-        TRADE OR DIE
-      </h3>
-      
-      {/* Token Pair Selection */}
-      <div className="flex justify-center items-center mb-6 space-x-4">
-        <div>
-          <label className="block text-xs text-yellow-400 font-bold mb-1">From</label>
-          <select
-            value={fromToken}
-            onChange={e => setFromToken(e.target.value)}
-            className="p-2 rounded bg-gray-800 text-green-400 font-bold border border-green-400/30"
+      <div className="flex flex-col items-center mb-6">
+        <h3 className="text-2xl font-display font-black text-green-400 glitch-text mb-2 neon-glow" data-text="TRADE CRYPTO">
+          TRADE CRYPTO
+        </h3>
+        <div className="flex space-x-2 mb-2">
+          <Button
+            className={`px-4 py-2 font-bold ${action === 'buy' ? 'bg-green-600 text-white' : 'bg-gray-800 text-green-400'}`}
+            onClick={() => setAction('buy')}
+            disabled={loading}
           >
-            {cryptos.map(c => (
-              <option key={c.symbol} value={c.symbol}>{c.symbol}</option>
-            ))}
-          </select>
+            Buy
+          </Button>
+          <Button
+            className={`px-4 py-2 font-bold ${action === 'sell' ? 'bg-red-600 text-white' : 'bg-gray-800 text-red-400'}`}
+            onClick={() => setAction('sell')}
+            disabled={loading}
+          >
+            Sell
+          </Button>
         </div>
-        <span className="text-yellow-400 font-bold">→</span>
-        <div>
-          <label className="block text-xs text-yellow-400 font-bold mb-1">To</label>
-          <select
-            value={toToken}
-            onChange={e => setToToken(e.target.value)}
-            className="p-2 rounded bg-gray-800 text-green-400 font-bold border border-green-400/30"
-          >
-            {cryptos.filter(c => c.symbol !== fromToken).map(c => (
-              <option key={c.symbol} value={c.symbol}>{c.symbol}</option>
-            ))}
-          </select>
+        <div className="flex space-x-2">
+          {cryptos.map(c => (
+            <Button
+              key={c.symbol}
+              className={`px-4 py-2 font-bold ${selectedToken === c.symbol ? 'bg-yellow-400 text-black' : 'bg-gray-800 text-yellow-400'}`}
+              onClick={() => setSelectedToken(c.symbol)}
+              disabled={loading}
+            >
+              {c.symbol}
+            </Button>
+          ))}
         </div>
       </div>
 
       {/* Price Display */}
-      <div className={`text-center mb-6 p-6 rounded-lg bg-gray-800/70 border-2 border-green-400/30 cyber-tilt ${priceGlitch ? 'animate-glitch' : ''}`}>
+      <div className="text-center mb-6 p-6 rounded-lg bg-gray-800/70 border-2 border-green-400/30 cyber-tilt">
         <p className="text-sm font-display font-bold text-yellow-400 mb-2">CURRENT PRICE</p>
         <p className="text-4xl font-display font-black text-green-400 neon-glow">
-          {selectedFrom && selectedTo ? `${selectedFrom.symbol}/${selectedTo.symbol}` : '--'}
+          {selectedCrypto ? `$${selectedCrypto.price}` : '--'}
         </p>
-        <p className="text-lg flex items-center justify-center mt-2 font-display font-black text-green-400 neon-glow">
-          {/* You can add price logic here if you want */}
-          Swap instantly on Sepolia testnet
-        </p>
+        {/* <p className="text-xs text-slate-400">Live price from CoinGecko</p>  */}
       </div>
 
       {/* User Balances */}
@@ -165,28 +170,32 @@ const TradingInterface = () => {
             <p className="text-green-400 font-mono font-bold text-lg">{balances[c.symbol] ? Number(balances[c.symbol]).toFixed(4) : '--'}</p>
           </div>
         ))}
+        <div className="text-center">
+          <p className="text-xs text-yellow-400 font-bold">ETH</p>
+          <p className="text-green-400 font-mono font-bold text-lg">{balances['ETH'] ? Number(balances['ETH']).toFixed(4) : '--'}</p>
+        </div>
       </div>
 
       {/* Amount Input */}
       <div className="mb-6">
-        <label className="block text-sm font-display font-bold text-yellow-400 mb-3">AMOUNT ({fromToken})</label>
+        <label className="block text-sm font-display font-bold text-yellow-400 mb-3">AMOUNT ({selectedToken})</label>
         <input
           type="number"
           value={amount}
           onChange={e => setAmount(e.target.value)}
-          placeholder={`ENTER AMOUNT OF ${fromToken}...`}
+          placeholder={`ENTER AMOUNT OF ${selectedToken}...`}
           className="w-full p-4 bg-gray-800/70 border-2 border-green-400/30 rounded-lg text-green-400 placeholder-yellow-400/50 focus:border-yellow-400 focus:outline-none focus:shadow-chaos-green transition-all duration-300 font-display font-bold"
         />
       </div>
 
-      {/* Swap Button */}
+      {/* Trade Button */}
       <div className="flex justify-center">
         <Button
-          onClick={handleSwap}
-          className="brutal-button chaos-buy h-16 text-xl font-black"
+          onClick={handleTrade}
+          className={`brutal-button h-16 text-xl font-black ${action === 'buy' ? 'chaos-buy' : 'chaos-sell'}`}
           disabled={loading}
         >
-          SWAP
+          {action === 'buy' ? 'BUY' : 'SELL'}
         </Button>
       </div>
     </Card>
